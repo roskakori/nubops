@@ -1,0 +1,15 @@
+target: /etc/systemd/system/${project}.service
+
+[Unit]
+Description=gunicorn daemon for ${project}
+Requires=${project}.socket
+After=network.target
+
+[Service]
+User=${user}
+Group=${group}
+WorkingDirectory=${project_dir}
+ExecStart=${project_dir}/venv/bin/gunicorn --access-logfile - --workers 3 --bind unix:/run/${project}.sock ${project}.wsgi:application
+
+[Install]
+WantedBy=multi-user.target
