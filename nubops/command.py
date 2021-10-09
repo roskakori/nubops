@@ -42,7 +42,7 @@ def main_without_logging_setup(args=None) -> int:
     )
 
     build_service(
-        "django_nginx_gunicorn",
+        "nginx_django_gunicorn",
         BuildMode.LOG,
         symbol_to_value_map,
     )
