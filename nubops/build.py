@@ -1,9 +1,12 @@
+# Copyright (c) 2021, Thomas Aglassinger
+# All rights reserved. Distributed under the BSD 3-Clause License.
 import enum
 import glob
 import os
 import os.path
 import re
 import string
+import tempfile
 from dataclasses import dataclass, field
 from typing import Dict, List
 
@@ -35,6 +38,19 @@ class _ScriptKind(enum.Enum):
     @property
     def sh_name(self):
         return f"{self.value}.sh"
+
+
+def resolved(
+    name: str, source_path: str, line_number: int, template_text: str, symbol_to_value_map: Dict[str, str]
+) -> str:
+    try:
+        return string.Template(template_text).substitute(symbol_to_value_map)
+    except KeyError as error:
+        raise DataError(
+            source_path, f"cannot resolve {name} because of missing symbol: {error}", line_number
+        ) from error
+    except Exception as error:
+        raise DataError(source_path, f"cannot resolve {name}: {error}", line_number) from error
 
 
 @dataclass
@@ -73,7 +89,7 @@ class BuildContent:
                         value = key_value_match.group("value")
                         if key == _TARGET_KEY:
                             try:
-                                self.target_path = self.resolved("target_path", self.template_path, line_number, value)
+                                self.target_path = self._resolved("target_path", self.template_path, line_number, value)
                             except Exception as error:
                                 raise DataError(
                                     self.template_path,
@@ -100,7 +116,7 @@ class BuildContent:
     def write(self, mode: BuildMode):
         log_message = ("writing" if mode == BuildMode.FILE else "printing") + " %s"
         log.info(log_message, self.target_path)
-        resolved_content = self.resolved(
+        resolved_content = self._resolved(
             "content", self.template_path, self.first_content_line_number, self.content_template
         )
         if mode == BuildMode.FILE:
@@ -112,15 +128,8 @@ class BuildContent:
         else:
             assert False, f"mode={mode}"
 
-    def resolved(self, name: str, source_path: str, line_number: int, template_text) -> str:
-        try:
-            return string.Template(template_text).substitute(self.symbol_to_value_map)
-        except KeyError as error:
-            raise DataError(
-                source_path, f"cannot resolve {name} because of missing symbol: {error}", line_number
-            ) from error
-        except Exception as error:
-            raise DataError(source_path, f"cannot resolve {name}: {error}", line_number) from error
+    def _resolved(self, name: str, source_path: str, line_number: int, template_text: str):
+        return resolved(name, source_path, line_number, template_text, self.symbol_to_value_map)
 
 
 class OpsBuilder:
@@ -155,7 +164,11 @@ class OpsBuilder:
         for script_kind in _ScriptKind:
             script_path = os.path.join(command_templates_folder, f"{script_kind.value}.sh")
             try:
-                result[script_kind] = text_content(script_path)
+
+                script_template = text_content(script_path)
+                result[script_kind] = resolved(
+                    f"script {script_kind.sh_name}", script_path, 0, script_template, self._symbol_to_value_map
+                )
             except FileNotFoundError:
                 pass  # No template, nothing to add.
             except OSError as error:
@@ -169,10 +182,20 @@ class OpsBuilder:
         self._run_script(_ScriptKind.AFTER)
 
     def _run_script(self, script_kind: _ScriptKind):
-        scrip_template = self._script_kind_to_content_map.get(script_kind)
+        scrip_content = self._script_kind_to_content_map.get(script_kind)
         script_name = script_kind.sh_name
-        if scrip_template is not None:
-            log.info("running %s", script_name)
+        if scrip_content is not None:
+            with tempfile.NamedTemporaryFile(
+                "w+", encoding="utf-8", prefix=f"nubops_{script_kind.value}_", suffix=".sh"
+            ) as shell_file:
+                if self._mode == BuildMode.FILE:
+                    log.info("running %s from %s", script_name, shell_file.name)
+                    shell_file.write(scrip_content)
+                    shell_file.seek(0)
+                elif self._mode == BuildMode.LOG:
+                    log.info("would %s from %s\n%s", script_name, shell_file.name, scrip_content)
+                else:
+                    assert False
 
     def _write_contents(self):
         for build_content in self._build_contents:

@@ -5,9 +5,8 @@ import logging
 import sys
 from typing import Dict
 
+from nubops import __version__
 from nubops.build import BuildMode, OpsBuilder
-
-from . import __version__
 
 
 def _parsed_args(args=None):
