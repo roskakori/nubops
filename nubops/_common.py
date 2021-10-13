@@ -3,6 +3,8 @@
 import os
 from typing import Optional
 
+TEMPLATES_FOLDER = os.path.join(os.path.dirname(__file__), "templates")
+
 
 def text_content(text_path: str) -> str:
     with open(text_path, encoding="utf-8") as text_file:

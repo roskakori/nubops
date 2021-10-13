@@ -7,16 +7,22 @@ import os.path
 import re
 import string
 import tempfile
+from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass, field
-from typing import Dict, List
+from typing import Any, Dict, List, Optional
 
 from nubops import log
-from nubops._common import DataError, text_content
+from nubops._common import TEMPLATES_FOLDER, DataError, text_content
 
-TEMPLATES_FOLDER = os.path.join(os.path.dirname(__file__), "templates")
+SUBPARSER_ARGUMENT = "subparser_name"
+
 _KEY_LINE_REGEX = re.compile(r"^\s*(?P<key>[a-z][a-z0-9_]*)\s*:\s*(?P<value>.+)\s*$")
 _TARGET_KEY = "target"
 _VALID_KEYS = [_TARGET_KEY]
+
+
+class BuildError(Exception):
+    pass
 
 
 class BuildMode(enum.Enum):
@@ -40,7 +46,58 @@ class _ScriptKind(enum.Enum):
         return f"{self.value}.sh"
 
 
-def resolved(
+def symbol_name_from(argument_name: str) -> str:
+    return argument_name.replace("-", "_")
+
+
+def resolved_symbol_to_value_map(
+    parser: ArgumentParser, arguments: Namespace, symbols_to_resolve: List[str]
+) -> Dict[str, Optional[Any]]:
+    def create_symbol_name_to_argument_value_map():
+        return {
+            symbol_name_from(argument_name): argument_value
+            for argument_name, argument_value in vars(arguments).items()
+            if argument_name
+            not in [
+                "func",  # Remove callback from ArgumentParser.set_defaults().
+                SUBPARSER_ARGUMENT,  # Remove internal argument to store the name of the subparser used.
+            ]
+        }
+
+    def resolve_argument_values(symbol_name_to_argument_value_map):
+        for symbol_to_resolve in symbols_to_resolve:
+            try:
+                argument_value = symbol_name_to_argument_value_map[symbol_to_resolve]
+            except KeyError:
+                assert False, (
+                    f"symbol {symbol_to_resolve!r} must be part of arguments: "
+                    f"{sorted(symbol_name_to_argument_value_map.keys())}"
+                )
+            else:
+                try:
+                    resolved_symbol_value = resolved_value(
+                        f"argument {symbol_to_resolve}", argument_value, symbol_name_to_argument_value_map
+                    )
+                except BuildError as error:
+                    parser.error(str(error))  # Raises SystemExit and thus terminates this function.
+                else:
+                    symbol_name_to_argument_value_map[symbol_to_resolve] = resolved_symbol_value
+
+    result = create_symbol_name_to_argument_value_map()
+    resolve_argument_values(result)
+    return result
+
+
+def resolved_value(name: str, template_text: str, symbol_to_value_map: Dict[str, str]):
+    try:
+        return string.Template(template_text).substitute(symbol_to_value_map)
+    except KeyError as error:
+        raise BuildError(f"cannot resolve symbol {name} because it references missing symbol: {error}") from error
+    except Exception as error:
+        raise BuildError(f"cannot resolve {name}: {error}") from error
+
+
+def resolved_line(
     name: str, source_path: str, line_number: int, template_text: str, symbol_to_value_map: Dict[str, str]
 ) -> str:
     try:
@@ -63,7 +120,7 @@ class BuildContent:
 
     def __post_init__(self):
         log.info("reading %s", self.template_path)
-        self.target_path = None
+        self.target_path = ""
         self.content_template = ""
         parser_state = _BuildParserState.AT_HEADER
         self.first_content_line_number = 0
@@ -108,7 +165,7 @@ class BuildContent:
                     self.content_template += line_with_newline
                 else:
                     assert False
-        if self.target_path is None:
+        if not self.target_path:
             raise DataError(self.template_path, "target must be set", 0)
         if self.first_content_line_number is None:
             raise DataError(self.template_path, "content template must be set", line_number)
@@ -129,16 +186,17 @@ class BuildContent:
             assert False, f"mode={mode}"
 
     def _resolved(self, name: str, source_path: str, line_number: int, template_text: str):
-        return resolved(name, source_path, line_number, template_text, self.symbol_to_value_map)
+        return resolved_line(name, source_path, line_number, template_text, self.symbol_to_value_map)
 
 
 class OpsBuilder:
-    def __init__(self, name: str, symbol_to_value_map: Dict[str, str], mode: BuildMode):
-        assert name is not None
+    def __init__(self, command: str, symbol_to_value_map: Dict[str, str], mode: BuildMode):
+        assert command is not None
+        assert COMMAND_NAME_REGEX.match(command) is not None, f"name {command} must match {COMMAND_NAME_REGEX.pattern}"
         assert symbol_to_value_map is not None
         assert mode is not None
 
-        self._name = name
+        self._name = symbol_name_from(command)
         self._symbol_to_value_map = symbol_to_value_map
         self._mode = mode
         self._templates_folder = os.path.join(TEMPLATES_FOLDER, self._name)
@@ -148,7 +206,11 @@ class OpsBuilder:
 
         assert (
             self._build_contents or self._script_kind_to_content_map
-        ), "template must have entries for at least one of the content maps"
+        ), f"template {self.name!r} must have entries for at least one of the content maps"
+
+    @property
+    def name(self):
+        return self._name
 
     def _create_build_contents(self) -> List[BuildContent]:
         result = []
@@ -166,7 +228,7 @@ class OpsBuilder:
             try:
 
                 script_template = text_content(script_path)
-                result[script_kind] = resolved(
+                result[script_kind] = resolved_line(
                     f"script {script_kind.sh_name}", script_path, 0, script_template, self._symbol_to_value_map
                 )
             except FileNotFoundError:
@@ -200,3 +262,8 @@ class OpsBuilder:
     def _write_contents(self):
         for build_content in self._build_contents:
             build_content.write(self._mode)
+
+
+COMMAND_SET_TIMEZONE = "set-timezone"
+ARGUMENT_NAME_REGEX = re.compile("^[a-zA-Z][a-zA-Z0-9-]*$")
+COMMAND_NAME_REGEX = ARGUMENT_NAME_REGEX

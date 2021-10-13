@@ -14,5 +14,5 @@ class CommandTest(TestCase):
         with self.assertRaises(SystemExit):
             main_without_logging_setup(["--version"])
 
-    def test_can_build(self):
-        main_without_logging_setup()
+    def test_can_build_nginx_django(self):
+        main_without_logging_setup(["nginx-django", "test", "example", "www.example.com"])
