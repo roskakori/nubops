@@ -1,0 +1,19 @@
+target: /etc/nginx/sites-available/${domain}
+
+server {
+    listen 80;
+    server_name ${domain};
+
+    location = /favicon.ico {
+        access_log off;
+        log_not_found off;
+    }
+    location /static/ {
+        root ${project_dir};
+    }
+
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:/run/${project}.sock;
+    }
+}
