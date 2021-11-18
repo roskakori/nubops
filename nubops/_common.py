@@ -5,6 +5,10 @@ from typing import Optional
 
 TEMPLATES_FOLDER = os.path.join(os.path.dirname(__file__), "templates")
 
+# Generic example IP address. This particular address has been used as example
+# on <https://en.wikipedia.org/wiki/IP_address>.
+EXAMPLE_IP_ADDRESS = "172.16.254.1"
+
 
 def text_content(text_path: str) -> str:
     with open(text_path, encoding="utf-8") as text_file:

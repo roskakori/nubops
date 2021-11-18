@@ -16,6 +16,13 @@ from nubops._common import TEMPLATES_FOLDER, DataError, text_content
 
 SUBPARSER_ARGUMENT = "subparser_name"
 
+ARGUMENT_NAME_REGEX = re.compile("^[a-zA-Z][a-zA-Z0-9-]*$")
+COMMAND_NAME_REGEX = ARGUMENT_NAME_REGEX
+
+COMMAND_NGINX_DJANGO = "nginx-django"
+COMMAND_FAIL2BAN = "fail2ban"
+COMMAND_SET_TIMEZONE = "set-timezone"
+
 _KEY_LINE_REGEX = re.compile(r"^\s*(?P<key>[a-z][a-z0-9_]*)\s*:\s*(?P<value>.+)\s*$")
 _TARGET_KEY = "target"
 _VALID_KEYS = [_TARGET_KEY]
@@ -26,8 +33,16 @@ class BuildError(Exception):
 
 
 class BuildMode(enum.Enum):
-    LOG = "log"
-    FILE = "file"
+    SHOW = "show"
+    WRITE = "write"
+    OVERWRITE = "overwrite"
+
+
+_BUILD_MODE_TO_LOG_VERB_MAP = {
+    BuildMode.OVERWRITE: "overwriting",
+    BuildMode.SHOW: "showing",
+    BuildMode.WRITE: "writing",
+}
 
 
 class _BuildParserState(enum.Enum):
@@ -113,6 +128,7 @@ def resolved_line(
 @dataclass
 class BuildContent:
     template_path: str
+    target_folder: str
     symbol_to_value_map: Dict[str, str]
     target_path: str = field(init=False)
     content_template: str = field(init=False)
@@ -147,6 +163,8 @@ class BuildContent:
                         if key == _TARGET_KEY:
                             try:
                                 self.target_path = self._resolved("target_path", self.template_path, line_number, value)
+                                if self.target_path.startswith("/"):
+                                    self.target_path = os.path.join(self.target_folder, self.target_path[1:])
                             except Exception as error:
                                 raise DataError(
                                     self.template_path,
@@ -171,38 +189,41 @@ class BuildContent:
             raise DataError(self.template_path, "content template must be set", line_number)
 
     def write(self, mode: BuildMode):
-        log_message = ("writing" if mode == BuildMode.FILE else "printing") + " %s"
-        log.info(log_message, self.target_path)
+        log.info("%s %s", _BUILD_MODE_TO_LOG_VERB_MAP[mode], self.target_path)
         resolved_content = self._resolved(
             "content", self.template_path, self.first_content_line_number, self.content_template
         )
-        if mode == BuildMode.FILE:
-            log.info("writing %s", self.target_path)
+        if mode in (BuildMode.OVERWRITE, BuildMode.WRITE):
+            if mode == BuildMode.OVERWRITE and os.path.exists(self.target_path):
+                raise BuildError(
+                    "cannot write existing target file, use --mode=overwrite to overwrite: " + self.target_path,
+                )
             with open(self.target_path, "w", encoding="utf-8") as target_file:
                 target_file.write(resolved_content)
-        elif mode == BuildMode.LOG:
-            log.info("would write %s\n%s", self.target_path, resolved_content)
         else:
-            assert False, f"mode={mode}"
+            assert mode == BuildMode.SHOW, f"mode={mode}"
 
     def _resolved(self, name: str, source_path: str, line_number: int, template_text: str):
         return resolved_line(name, source_path, line_number, template_text, self.symbol_to_value_map)
 
 
 class OpsBuilder:
-    def __init__(self, command: str, symbol_to_value_map: Dict[str, str], mode: BuildMode):
+    def __init__(self, command: str, symbol_to_value_map: Dict[str, str], mode: BuildMode, target_folder: str = "/"):
         assert command is not None
         assert COMMAND_NAME_REGEX.match(command) is not None, f"name {command} must match {COMMAND_NAME_REGEX.pattern}"
         assert symbol_to_value_map is not None
         assert mode is not None
+        assert target_folder is not None
 
         self._name = symbol_name_from(command)
         self._symbol_to_value_map = symbol_to_value_map
         self._mode = mode
+        self._target_folder = target_folder
         self._templates_folder = os.path.join(TEMPLATES_FOLDER, self._name)
         log.info("reading templates from %s", self._templates_folder)
         self._build_contents = self._create_build_contents()
         self._script_kind_to_content_map = self._create_script_kind_name_to_content_map()
+        self._has_to_run_shell_scripts = mode in (BuildMode.OVERWRITE, BuildMode.WRITE) and target_folder == "/"
 
         assert (
             self._build_contents or self._script_kind_to_content_map
@@ -217,7 +238,7 @@ class OpsBuilder:
         glob_pattern = os.path.join(TEMPLATES_FOLDER, self._name, "*")
         for template_path in glob.iglob(glob_pattern):
             if os.path.isfile(template_path):
-                result.append(BuildContent(template_path, self._symbol_to_value_map))
+                result.append(BuildContent(template_path, self._target_folder, self._symbol_to_value_map))
         return result
 
     def _create_script_kind_name_to_content_map(self) -> Dict[_ScriptKind, str]:
@@ -250,20 +271,13 @@ class OpsBuilder:
             with tempfile.NamedTemporaryFile(
                 "w+", encoding="utf-8", prefix=f"nubops_{script_kind.value}_", suffix=".sh"
             ) as shell_file:
-                if self._mode == BuildMode.FILE:
+                if self._has_to_run_shell_scripts:
                     log.info("running %s from %s", script_name, shell_file.name)
                     shell_file.write(scrip_content)
                     shell_file.seek(0)
-                elif self._mode == BuildMode.LOG:
-                    log.info("would %s from %s\n%s", script_name, shell_file.name, scrip_content)
                 else:
-                    assert False
+                    log.info("would run %s from %s\n%s", script_name, shell_file.name, scrip_content)
 
     def _write_contents(self):
         for build_content in self._build_contents:
             build_content.write(self._mode)
-
-
-COMMAND_SET_TIMEZONE = "set-timezone"
-ARGUMENT_NAME_REGEX = re.compile("^[a-zA-Z][a-zA-Z0-9-]*$")
-COMMAND_NAME_REGEX = ARGUMENT_NAME_REGEX
