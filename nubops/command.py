@@ -33,7 +33,7 @@ for _command, _symbols in _COMMAND_TO_SYMBOLS_TO_RESOLVE_MAP.items():
 
 # Regex for internet domain, for example "www.example.com".
 # Source: <https://www.geeksforgeeks.org/how-to-validate-a-domain-name-using-regular-expression/>
-_DOMAIN_REGEX = re.compile("^(?!-)[A-Za-z0-9-]+([\\-\\.]{1}[a-z0-9]+)*\\.[A-Za-z]{2,6}$")
+_DOMAIN_REGEX = re.compile("^((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)+[A-Za-z]{2,6}")
 
 
 def parsed_template_and_symbols(args=None):
@@ -153,7 +153,6 @@ def _domain_type(argument_value: str) -> str:
 
 
 def _build_from_args(args):
-
     environment_name = "production"
     project = "example"
     domain = f"www.{project}.com"
