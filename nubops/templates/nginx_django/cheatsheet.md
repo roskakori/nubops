@@ -1,4 +1,4 @@
-target: {project_dir}/cheatsheet.md
+target: ${project_dir}/cheatsheet.md
 
 # Cheatsheet for ${project}
 
