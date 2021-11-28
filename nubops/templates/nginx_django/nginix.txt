@@ -8,10 +8,12 @@ server {
         access_log off;
         log_not_found off;
     }
+    location /media/ {
+        root ${project_dir};
+    }
     location /static/ {
         root ${project_dir};
     }
-
     location / {
         include proxy_params;
         proxy_pass http://unix:/run/${project}.sock;
