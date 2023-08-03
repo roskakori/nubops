@@ -14,7 +14,7 @@
 
 ## Developer cheat sheet
 
-Tag a release (simply replace ``1.x.x`` with the current version number):
+Tag a release (simply replace `1.x.x` with the current version number):
 
 ```bash
 $ git tag -a -m "Tagged version 1.x.x." v1.x.x

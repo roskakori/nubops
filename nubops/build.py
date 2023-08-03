@@ -247,7 +247,6 @@ class OpsBuilder:
         for script_kind in _ScriptKind:
             script_path = os.path.join(command_templates_folder, f"{script_kind.value}.sh")
             try:
-
                 script_template = text_content(script_path)
                 result[script_kind] = resolved_line(
                     f"script {script_kind.sh_name}", script_path, 0, script_template, self._symbol_to_value_map
