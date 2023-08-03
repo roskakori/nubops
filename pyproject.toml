@@ -2,6 +2,8 @@
 line-length = 120
 include = '\.pyi?$'
 target-version = [
+    "py38",
+    "py39",
     "py310",
     "py311",
 ]
@@ -42,8 +44,30 @@ known_first_party = "scripts"
 name = "nubops"
 version = "0.1.0"
 description = "Tool to quickly set up Ububtu standard services"
+readme = "README.md"
 authors = ["Thomas Aglassinger"]
-license = "License :: OSI Approved :: BSD License"
+license = "BSD"
+homepage = "https://github.com/roskakori/nubops"
+repository = "https://github.com/roskakori/nubops.git"
+documentation = "https://github.com/roskakori/nubops/blob/main/README.md"
+keywords = ["installation", "nginx", "service", "setup", "Ubuntu"]
+classifiers = [
+        "Development Status :: 4 - Beta",
+        "Environment :: Console",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: BSD License",
+        "Natural Language :: English",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Topic :: System :: Installation/Setup",
+]
+packages = [
+    { include = "nubops" },
+]
 
 [tool.poetry.dependencies]
 python = ">=3.8, <4"
@@ -64,7 +88,7 @@ nubops = "nubops.command:main"
 
 [tool.poetry.urls]
 "Issue Tracker" = "https://github.com/roskakori/nubops/issues"
-# TODO: "Changes" = "https://github.com/roskakori/nubops/blob/main/CHANGELOG"
+"Changes" = "https://github.com/roskakori/nubops/blob/main/CHANGES.md"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
