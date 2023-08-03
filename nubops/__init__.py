@@ -1,7 +1,8 @@
 # Copyright (c) 2021, Thomas Aglassinger
 # All rights reserved. Distributed under the BSD 3-Clause License.
 import logging
+from importlib.metadata import version
 
-__version__ = "0.1.0"
+__version__ = version(__name__)
 
 log = logging.getLogger("nubops")

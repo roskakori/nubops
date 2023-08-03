@@ -1,9 +1,87 @@
-[build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
-
 [tool.black]
 line-length = 120
+include = '\.pyi?$'
+target-version = [
+    "py310",
+    "py311",
+]
+exclude = '''
+/(
+  \.git
+  | build
+  | dist
+)/
+'''
+
+[tool.coverage.report]
+exclude_also = [
+    # Don't complain about missing debug-only code:
+    "def __repr__",
+    "if self\\.debug",
+
+    # Don't complain if tests don't hit defensive assertion code:
+    "assert False",
+    "raise AssertionError",
+    "raise NotImplementedError",
+
+    # Don't complain if non-runnable code isn't run:
+    "if False:",
+    "if __name__ == .__main__.:",
+
+    # Don't complain about abstract methods, they aren't run:
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.isort]
+profile = "black"
+line_length = 120
+default_section = "THIRDPARTY"
+known_first_party = "scripts"
+
+[tool.poetry]
+name = "nubops"
+version = "0.1.0"
+description = "Tool to quickly set up Ububtu standard services"
+authors = ["Thomas Aglassinger"]
+license = "License :: OSI Approved :: BSD License"
+
+[tool.poetry.dependencies]
+python = ">=3.8, <4"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.2.0"
+pytest-cov = "^4.0.0"
+pytest-order = "^1.0.1"
+black = {extras = ["d"], version = "^23.3.0"}
+setuptools = "^68.0.0"
+twine = "^4.0.2"
+coverage = "5.5"
+coveralls = "^3.3.1"
+pre-commit = "^3.3.3"
+
+[tool.poetry.scripts]
+nubops = "nubops.command:main"
+
+[tool.poetry.urls]
+"Issue Tracker" = "https://github.com/roskakori/nubops/issues"
+# TODO: "Changes" = "https://github.com/roskakori/nubops/blob/main/CHANGELOG"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+addopts = """\
+    --strict-config
+    --strict-markers
+    """
+filterwarnings = [
+    "default",
+]
+minversion = "7.0"
+testpaths = [
+    "tests",
+]
 
 [pycodestyle]
 max-line-length = 120
