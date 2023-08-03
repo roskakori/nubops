@@ -39,6 +39,7 @@ sudo systemctl restart ${project}
 ```
 
 To check nginx settings:
+
 ```bash
 nginx -t
 ```
