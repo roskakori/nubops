@@ -17,7 +17,7 @@
 Tag a release (simply replace `1.x.x` with the current version number):
 
 ```bash
-$ git tag -a -m "Tagged version 1.x.x." v1.x.x
+$ git tag -a -m "Tag version 0.x.x" v0.x.x
 $ git push --tags
 ```
 

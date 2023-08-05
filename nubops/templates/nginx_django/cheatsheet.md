@@ -2,7 +2,7 @@ target: ${project_dir}/cheatsheet.md
 
 # Cheatsheet for ${project}
 
-To to interactively monitor the nginx log files:
+To interactively monitor the nginx log files:
 
 ```bash
 sudo tail -f /var/log/nginx/error.log
