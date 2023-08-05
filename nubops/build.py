@@ -19,8 +19,9 @@ SUBPARSER_ARGUMENT = "subparser_name"
 ARGUMENT_NAME_REGEX = re.compile("^[a-zA-Z][a-zA-Z0-9-]*$")
 COMMAND_NAME_REGEX = ARGUMENT_NAME_REGEX
 
-COMMAND_NGINX_DJANGO = "nginx-django"
+COMMAND_DOCKER = "docker"
 COMMAND_FAIL2BAN = "fail2ban"
+COMMAND_NGINX_DJANGO = "nginx-django"
 COMMAND_SET_TIMEZONE = "set-timezone"
 
 _KEY_LINE_REGEX = re.compile(r"^\s*(?P<key>[a-z][a-z0-9_]*)\s*:\s*(?P<value>.+)\s*$")

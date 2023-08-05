@@ -8,6 +8,7 @@ import sys
 from nubops import __version__, log
 from nubops._common import EXAMPLE_IP_ADDRESS, DataError
 from nubops.build import (
+    COMMAND_DOCKER,
     COMMAND_FAIL2BAN,
     COMMAND_NAME_REGEX,
     COMMAND_NGINX_DJANGO,
@@ -65,6 +66,7 @@ def parsed_template_and_symbols(args=None):
         title="template commands",
     )
 
+    _add_docker_parser(template_parsers)
     _add_fail2ban_parser(template_parsers)
     _add_nginx_django_parser(template_parsers)
     _add_set_timezone_parser(template_parsers)
@@ -74,6 +76,31 @@ def parsed_template_and_symbols(args=None):
     symbols_to_resolve = _COMMAND_TO_SYMBOLS_TO_RESOLVE_MAP.get(subparser_name, [])
     symbol_to_value_map = resolved_symbol_to_value_map(parser, arguments, symbols_to_resolve)
     return arguments.mode, arguments.target, subparser_name, symbol_to_value_map
+
+
+def _add_docker_parser(template_parsers):
+    docker_parser = _added_template_parser(
+        template_parsers,
+        COMMAND_DOCKER,
+        "install docker",
+    )
+    docker_parser.add_argument(
+        "--skip-demon-json",
+        "-j",
+        help="skip writing a default /etc/docker/demon.json in case it does not exist yet",
+    )
+    docker_parser.add_argument(
+        "--skip-service",
+        "-e",
+        action="store_true",
+        help="skip starting docker on boot as systemd service",
+    )
+    docker_parser.add_argument(
+        "--sudo",
+        "-u",
+        action="store_true",
+        help="allow only sudo users to run docker",
+    )
 
 
 def _add_fail2ban_parser(template_parsers):
