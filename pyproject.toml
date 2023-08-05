@@ -42,7 +42,7 @@ known_first_party = "scripts"
 
 [tool.poetry]
 name = "nubops"
-version = "0.1.0"
+version = "0.2.0"
 description = "Tool to quickly set up Ububtu standard services"
 readme = "README.md"
 authors = ["Thomas Aglassinger"]
