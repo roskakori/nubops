@@ -2,11 +2,15 @@
 # All rights reserved. Distributed under the BSD 3-Clause License.
 from unittest import TestCase
 
-from nubops.build import COMMAND_FAIL2BAN, COMMAND_NGINX_DJANGO, COMMAND_SET_TIMEZONE
+from nubops.build import COMMAND_DOCKER, COMMAND_FAIL2BAN, COMMAND_NGINX_DJANGO, COMMAND_SET_TIMEZONE
 from nubops.command import main_without_logging_setup
 
 
 class CommandTest(TestCase):
+    def test_can_show_docker_help(self):
+        with self.assertRaises(SystemExit):
+            main_without_logging_setup([COMMAND_DOCKER, "--help"])
+
     def test_can_show_help(self):
         with self.assertRaises(SystemExit):
             main_without_logging_setup(["--help"])
@@ -27,8 +31,14 @@ class CommandTest(TestCase):
         with self.assertRaises(SystemExit):
             main_without_logging_setup(["--version"])
 
-    def test_can_build_nginx_django(self):
-        main_without_logging_setup(["--mode", "show", "nginx-django", "test", "example", "www.example.com"])
+    def test_can_build_docker(self):
+        main_without_logging_setup(["--mode", "show", COMMAND_DOCKER])
 
     def test_can_build_fail2ban(self):
-        main_without_logging_setup(["--mode", "show", "fail2ban"])
+        main_without_logging_setup(["--mode", "show", COMMAND_FAIL2BAN])
+
+    def test_can_build_nginx_django(self):
+        main_without_logging_setup(["--mode", "show", COMMAND_NGINX_DJANGO, "test", "example", "www.example.com"])
+
+    def test_can_build_set_timezone(self):
+        main_without_logging_setup(["--mode", "show", COMMAND_SET_TIMEZONE])
