@@ -63,6 +63,8 @@ classifiers = [
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "Topic :: System :: Installation/Setup",
 ]
 packages = [
@@ -70,18 +72,17 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.8, <4"
+python = ">=3.9, <4"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^7.2.0"
-pytest-cov = "^4.0.0"
-pytest-order = "^1.0.1"
-black = {extras = ["d"], version = "^23.3.0"}
-setuptools = "^68.0.0"
-twine = "^4.0.2"
-coverage = "5.5"
-coveralls = "^3.3.1"
-pre-commit = "^3.3.3"
+pytest = "^8"
+pytest-cov = "^6"
+pytest-order = "^1"
+black = {extras = ["d"], version = "^24"}
+setuptools = "^75"
+twine = "^6"
+coverage = "^7"
+pre-commit = "^4"
 
 [tool.poetry.scripts]
 nubops = "nubops.command:main"
@@ -91,7 +92,7 @@ nubops = "nubops.command:main"
 "Changes" = "https://github.com/roskakori/nubops/blob/main/CHANGES.md"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=1.9.1"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
@@ -102,7 +103,7 @@ addopts = """\
 filterwarnings = [
     "default",
 ]
-minversion = "7.0"
+minversion = "8.3"
 testpaths = [
     "tests",
 ]
