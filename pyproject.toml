@@ -79,7 +79,7 @@ pytest = "^8"
 pytest-cov = "^6"
 pytest-order = "^1"
 black = {extras = ["d"], version = "^24"}
-setuptools = "^75"
+setuptools = "^78"
 twine = "^6"
 coverage = "^7"
 pre-commit = "^4"
